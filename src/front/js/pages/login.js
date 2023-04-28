@@ -1,51 +1,89 @@
-import React, { useContext, useState } from "react";
-import { Context } from "../store/appContext";
-import rigoImageUrl from "../../img/rigo-baby.jpg";
-import "../../styles/home.css";
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Form, Button } from "react-bootstrap";
+import { useDispatch } from "react-redux";
+import { setEmail, setToken } from "../store/userSlice";
+import axios from "axios";
 
-export const Login = () => {
-  const { store, actions } = useContext(Context);
-  const [email, setEmail] = useState("");
+const Login = () => {
+  const [email, setEmailState] = useState("");
   const [password, setPassword] = useState("");
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
 
-  const handleClick = () => {
-    const opts = {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        email: email,
-        password: password
-      })
-    };
+  const BACKEND_URL = process.env.BACKEND_URL;
+  console.log(BACKEND_URL)
 
-    fetch("https://3001-4geeksacade-reactflaskh-okcpm85ba5u.ws-us88.gitpod.io/api/token", opts)
-      .then(resp => {
-        if (resp.status === 200) return resp.json();
-        else alert("There has been some error!");
-      })
-      .then(data => {
-        console.log("this came from the backend", data);
-        sessionStorage.setItem("token", data.access_token);
-        actions.setLoggedIn(true);
-      })
-      .catch(error => {
-        console.error("There was an error!", error);
-      });
+  const headers = {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*'
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+  
+    if (!email) {
+      console.error('Email is required');
+      return;
+    }
+  
+    try {
+      // Call login API endpoint
+      const response = await axios.post(`${BACKEND_URL}/login`, {
+        email,
+        password,
+      }, { headers });
+  
+      // Dispatch login action with email and token
+      console.log(response.data);
+      dispatch(setToken(response.data.token));
+      dispatch(setEmail(response.data.email));
+  
+      // Navigate to private page
+      navigate("/private");
+    } catch (error) {
+      console.error(error);
+    }
   };
+  
 
   return (
-    <div className="text-center mt-5">
-      <h1>Login</h1>
-      <div>
-        <input type="text" placeholder="email" value={email} onChange={e => setEmail(e.target.value)} />
-        <input type="password" placeholder="password" value={password} onChange={e => setPassword(e.target.value)} />
-        <button onClick={handleClick}>Login</button>
+    <div className="container d-flex justify-content-center align-items-center mt-5">
+      <div className="col-md-6">
+        <h2 className="text-center mb-4">Login</h2>
+        <Form onSubmit={handleSubmit}>
+          <Form.Group controlId="email">
+            <Form.Control
+              type="email"
+              placeholder="Enter email"
+              value={email}
+              onChange={(e) => setEmailState(e.target.value)}
+              required
+              className="mb-2"
+            />
+          </Form.Group>
+
+          <Form.Group controlId="password">
+            <Form.Control
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </Form.Group>
+
+          <Button variant="primary" type="submit" className="w-100 mt-3">
+            Submit
+          </Button>
+        </Form>
+
+        <div className="mt-3 text-center">
+        Join us! Register for an account. <Link to="/signup">Sign up here</Link>
+        </div>
       </div>
     </div>
   );
 };
 
-
-
+export default Login;
